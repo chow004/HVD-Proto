@@ -4,7 +4,7 @@
 
 # ignore ModelSim generated files and directories (temp files and so on)
 [_@]*
-# ignore compilation output of ModelSim
+# ignore compilation output of ModelSim (except .jpg)
 *.mti
 *.dat
 *.dbs
@@ -12,7 +12,6 @@
 *.prw
 *.bak
 *.cmp
-*.jpg
 *.html
 *.bsf
 # ignore simulation output of ModelSim
