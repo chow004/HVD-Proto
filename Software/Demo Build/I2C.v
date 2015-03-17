@@ -20,7 +20,7 @@ txReg,
 rxReg, 
 address, 
 sub_address, 
-error);
+busy);
 				
 input			   clk_50;
 input			   WR;
@@ -38,7 +38,7 @@ inout 		   SCL;
 output reg	   DE;			// data enable
 									// ... indicates when register has processed 1 byte
 									
-output reg	error;
+output reg	busy;
 
 // state variables
 reg  	[1:0]State;
@@ -64,6 +64,7 @@ reg         counter_reset;
 // data control variables
 reg			[7:0]bytes_processed;
 reg			[3:0]scl_ticks;
+reg		   I2C_READY;
 reg		   I2C_DATA;
 reg 		   I2C_CLK;
 
@@ -94,7 +95,8 @@ initial begin
 	bytes_processed = 0;
 	
 	scl_ticks = 0;
-	error = 0;
+	busy = 0;
+	I2C_READY = 0;
 end
 
 // 7-bit counter -> 390.625 kHz
@@ -126,19 +128,21 @@ always @ (posedge LCLK) begin
 	
 	case(State)
 		IDLE: begin
-		   error <= 0;
+		   busy <= 0;
 			I2C_DATA <= 1;
+			I2C_READY <= 1;
 			if(request) begin
 				Next <= SETUP;			  // goto SETUP state
 				subNext <= ssADDR;
 		      I2C_DATA <= 0;     // send start bit
 				CE <= 1;
+				I2C_READY <= 0;
 			end
 		end
 		SETUP: begin
 			case(subState)
 				ssADDR: begin
-					error <= 1; // busy, change later
+					busy <= 1;
 					if(scl_ticks < 7) begin			// send 7-bit addr
 						I2C_DATA = address[6 - scl_ticks];
 					end

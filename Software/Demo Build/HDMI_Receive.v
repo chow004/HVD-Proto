@@ -31,7 +31,14 @@ HDMI0_RX_DE,
 HDMI0_RX_LLC,
 HDMI0_RX_P,
 LEDG,
-LEDR
+LEDR,
+VGA_R,
+VGA_G,
+VGA_B,
+VGA_CLK,
+VGA_BLANK_N,
+VGA_VS,
+VGA_HS
 );
 
 input 	CLOCK_50;
@@ -67,6 +74,14 @@ output wire[6:0]HEX5;
 output wire[6:0]HEX6;
 output wire[6:0]HEX7;
 
+output	  [7:0]VGA_R;
+output	  [7:0]VGA_G;
+output	  [7:0]VGA_B;
+output     VGA_CLK;
+output     VGA_BLANK_N;
+output     VGA_HS;
+output 	  VGA_VS;
+
 reg		  [3:0]val0;
 reg		  [3:0]val1;
 reg		  [3:0]val4;
@@ -85,26 +100,32 @@ To_Hex hex_display7(.bin4(val7), .display(HEX7));
 reg		i2c0_wren;				// indicates r/w for i2c
 reg		[7:0]i2c0_size;		// indicates r/w size in bytes for i2c
 reg		i2c0_req;				// controls i2c requests
-reg		temp;
 wire		i2c0_de;					// indicates when i2c data has been processed
-reg		[7:0]i2c0_tx;			// transmit reg
-wire		[7:0]i2c0_rx;			// receive reg
+reg		[63:0]i2c0_tx;			// transmit reg
+wire		[63:0]i2c0_rx;			// receive reg
 reg		[6:0]i2c0_addr;		// address    (HDMI map address)
 reg		[7:0]i2c0_saddr;		// subaddress (HDMI subaddress in map)
-reg		[3:0]i2c0_bytes_received;
 
-wire		err;
+wire		busy;
+reg		de_oneshot;
+reg		temp;
 
 // i2c module
 I2C receiver_i2c(.clk_50(CLOCK_50), .WR(i2c0_wren), .length(i2c0_size),
  .request(i2c0_req), .DE(i2c0_de), .SDA(HDMI0_RX_SDA), .SCL(HDMI0_RX_SCL),
- .txReg(i2c0_tx), .rxReg(i2c0_rx), .address(i2c0_addr), .sub_address(i2c0_saddr), .error(err));
-
+ .txReg(i2c0_tx[7:0]), .rxReg(i2c0_rx[7:0]), .address(i2c0_addr), .sub_address(i2c0_saddr), .busy(busy));
+ 
+assign VGA_R = HDMI0_RX_P[7:0];
+assign VGA_G = HDMI0_RX_P[15:8];
+assign VGA_B = HDMI0_RX_P[23:16];
+assign VGA_CLK = HDMI0_RX_LLC;
+assign VGA_BLANK_N = HDMI0_RX_DE;
+assign VGA_HS = HDMI0_RX_HSYNC;
+assign VGA_VS = HDMI0_RX_VSYNC;
 
 initial begin
 	i2c0_req = 0;
 	i2c0_wren = 1;
-	i2c0_bytes_received = 0;
 	
 	LEDG[8:0] = 0;
 	LEDR[17:0] = 0;
@@ -113,64 +134,58 @@ initial begin
 	val7 = 0;
 	
 	HDMI0_RX_RESET = 1;
+	de_oneshot = 0;
 	temp = 0;
 end
 
 always @(posedge CLOCK_50) begin
-	val0 <= SW[3:0];
-	val1 <= SW[7:4];
-	val6 <= SW[13:10];
-	val7 <= SW[17:14];
-	i2c0_saddr <= SW[17:10];		// subaddress = SW17-S10
-	i2c0_addr <= 7'b1001100;		// IO map address = 0x98
-	i2c0_tx <= SW[7:0];				// byte to transfer = SW7-SW0
+	val0 = SW[3:0];
+	val1 = SW[7:4];
+	val6 = SW[13:10];
+	val7 = SW[17:14];
+	i2c0_saddr = SW[17:10];		// subaddress = SW17-S10
+	i2c0_addr = 7'b1001100;		// IO map address = 0x98
 	
-	val4 <= i2c0_rx[3:0];			// byte received
-	val5 <= i2c0_rx[7:4];
+	val4 = i2c0_rx[3:0];			// byte received
+	val5 = i2c0_rx[7:4];
   
-  if(KEY[0] == 0 && temp == 0) begin				// KEY0 pressed
+  if(KEY[0] == 0 && busy == 0 && temp == 0) begin			// KEY0 pressed
+	 i2c0_tx[7:0] = SW[7:0];			// byte to transfer = SW7-SW0
     i2c0_wren = 1;					// perform i2c write
 	 i2c0_size = 1;					// write only 1 byte
 	 i2c0_req = 1;
 	 temp = 1;
   end
-  else if(KEY[1] == 0 && temp == 0) begin		// KEY1 pressed
+  else if(KEY[1] == 0 && busy == 0 && temp == 0) begin		// KEY1 pressed
+    i2c0_tx[7:0] = SW[7:0];			// byte to transfer = SW7-SW0
     i2c0_wren = 0;					// perform i2c read
 	 i2c0_size = 1;					// read only 1 byte
-    i2c0_req = 1;
+	 i2c0_req = 1;
 	 temp = 1;
   end
-  else if(KEY[2] == 0)begin
-    temp = 0;						// else do nothing
+  else if(KEY[2] == 0 && busy == 0 && temp == 0) begin		// KEY2 pressed
+	 i2c0_wren = 1;				// write 5 configuration bytes to IO map
+	 i2c0_saddr = 0;
+	 i2c0_tx[63:0] = 64'h4240F20608;
+	 i2c0_size = 5;
+	 i2c0_req = 1;
+	 temp = 1;
   end
-  else if(err == 1)begin
+  else if(KEY[3] == 0) begin
+	 temp = 0;
+  end
+  else if(busy == 1)begin
     i2c0_req = 0;
   end
-	 
-  LEDG[7:0] <= i2c0_rx[7:0];
+  
+  if(i2c0_de & !de_oneshot) begin
+	i2c0_tx = i2c0_tx >> 8;
+  end
+  
+  de_oneshot = i2c0_de;
+  
+  LEDG[1] = busy;
 end
-
-/*
-always @(posedge i2c0_de) begin
-	if(i2c0_wren == 1) begin
-	  i2c0_tx <= i2c0_tx << 1;
-	end
-	else begin
-	  i2c0_bytes_received = i2c0_bytes_received + 1;
-	  if(i2c0_bytes_received == 1) begin
-		 LEDR[17:10] <= i2c0_rx;
-	  end
-	  else if(i2c0_bytes_received == 2) begin
-	    LEDR[9:2] <= i2c0_rx;
-		 i2c0_bytes_received = 0;
-	  end
-	end
-	
-	if(i2c0_tx == 0) begin
-		i2c0_tx <= 8'b0001011;
-	end
-end
-*/
 
 endmodule
 
