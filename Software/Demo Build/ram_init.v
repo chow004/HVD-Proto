@@ -17,11 +17,11 @@ data_out);
 
 input clk;
 input WE;
-input [5:0]address;
+input [11:0]address;
 input [23:0]data_in;
 output reg [23:0]data_out;
 
-(* ramstyle = "M9K", ram_init_file = "adv7611.mif" *) reg [23:0] init_mem[0:63];
+(* ramstyle = "M9K", ram_init_file = "adv7611.mif" *) reg [23:0] init_mem[0:511];
 
 always @(posedge clk)
 begin

@@ -14,6 +14,8 @@ SW,
 KEY,
 HEX0,
 HEX1,
+HEX2,
+HEX3,
 HEX4,
 HEX5,
 HEX6,
@@ -69,6 +71,8 @@ output reg [9:0]LEDG;
 output reg [18:0]LEDR;
 output wire[6:0]HEX0;
 output wire[6:0]HEX1;
+output wire[6:0]HEX2;
+output wire[6:0]HEX3;
 output wire[6:0]HEX4;
 output wire[6:0]HEX5;
 output wire[6:0]HEX6;
@@ -119,7 +123,7 @@ I2C receiver_i2c(.clk_50(CLOCK_50), .WR(i2c0_wren), .length(i2c0_size),
  .txReg(i2c0_tx[7:0]), .rxReg(i2c0_rx[7:0]), .address(i2c0_addr), .sub_address(i2c0_saddr), .busy(busy));
  
 reg mem_wr;
-reg [5:0]mem_addr;
+reg [11:0]mem_addr;
 reg [23:0]mem_in;
 wire [23:0]mem_out;
 reg mem_done;
@@ -148,7 +152,7 @@ initial begin
 	i2c0_saddr = 8'b0;
 	
 	mem_wr = 0;
-	mem_addr = 6'b0;
+	mem_addr = 12'b0;
 	mem_in = 24'b0;
 	mem_done = 0;
 end
@@ -158,44 +162,40 @@ always @(posedge CLOCK_50) begin
 	val1 = SW[7:4];
 	val2 = i2c0_rx[3:0];
 	val3 = i2c0_rx[7:4];
-	val6 = i2c0_addr[3:0];
-	val7 = i2c0_addr[6:4];
+	val6[3:1] = i2c0_addr[2:0];
+	val7 = i2c0_addr[6:3];
 	val4 = i2c0_saddr[3:0];
 	val5 = i2c0_saddr[7:4];
 	
-	if(mem_done == 0 && busy == 0) begin
+	if(mem_done == 0 && busy == 0 && i2c0_req == 0) begin
 		i2c0_tx = mem_out[7:0];
 		i2c0_saddr = mem_out[15:8];
-		i2c0_addr = mem_out[23:16]; 
+		i2c0_addr = mem_out[23:17]; 
 		i2c0_size = 1;
 		i2c0_wren = 1;
 		i2c0_req = 1;
-		mem_addr = mem_addr + 6'b1;
+		mem_addr = mem_addr + 12'b1;
 	end
 	
-	if(mem_addr == 6'b100100) begin
+	if(mem_addr == 12'h13B) begin
 		mem_done = 1;
 	end
 	
-	if(mem_addr == 6'b100100) begin
-		mem_done = 1;
-	end
-	
-	if(KEY[0] == 0 && busy == 0) begin			// KEY0 pressed
+	if(KEY[0] == 0 && busy == 0 && i2c0_req == 0) begin			// KEY0 pressed
 		i2c0_tx[7:0] = SW[7:0];		// byte to transfer = SW7-SW0
 		i2c0_wren = 1;					// perform i2c write
 		i2c0_size = 1;					// write only 1 byte
 		i2c0_req = 1;
 	end
-	else if(KEY[1] == 0 && busy == 0) begin		// KEY1 pressed
+	else if(KEY[1] == 0 && busy == 0 && i2c0_req == 0) begin		// KEY1 pressed
 		i2c0_wren = 0;					// perform i2c read
 		i2c0_size = 1;					// read only 1 byte
 		i2c0_req = 1;
 	end
-	else if(KEY[2] == 0) begin
-		i2c0_addr = SW[7:0];
+	else if(KEY[2] == 0) begin // input address
+		i2c0_addr = SW[7:1];
 	end 
-	else if(KEY[3] == 0) begin
+	else if(KEY[3] == 0) begin // input sub-address
 		i2c0_saddr = SW[7:0];
 	end
 	
@@ -208,6 +208,8 @@ always @(posedge CLOCK_50) begin
 	end
   
 	de_oneshot = i2c0_de;
+  
+  LEDG[0] = busy;
 end
 
 endmodule
