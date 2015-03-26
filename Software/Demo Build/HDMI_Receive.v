@@ -84,6 +84,8 @@ output 	  VGA_VS;
 
 reg		  [3:0]val0;
 reg		  [3:0]val1;
+reg		  [3:0]val2;
+reg		  [3:0]val3;
 reg		  [3:0]val4;
 reg		  [3:0]val5;
 reg		  [3:0]val6;
@@ -92,6 +94,8 @@ reg		  [3:0]val7;
 
 To_Hex hex_display0(.bin4(val0), .display(HEX0));
 To_Hex hex_display1(.bin4(val1), .display(HEX1));
+To_Hex hex_display2(.bin4(val2), .display(HEX2));
+To_Hex hex_display3(.bin4(val3), .display(HEX3));
 To_Hex hex_display4(.bin4(val4), .display(HEX4));
 To_Hex hex_display5(.bin4(val5), .display(HEX5));
 To_Hex hex_display6(.bin4(val6), .display(HEX6));
@@ -108,13 +112,20 @@ reg		[7:0]i2c0_saddr;		// subaddress (HDMI subaddress in map)
 
 wire		busy;
 reg		de_oneshot;
-reg		temp;
 
 // i2c module
 I2C receiver_i2c(.clk_50(CLOCK_50), .WR(i2c0_wren), .length(i2c0_size),
  .request(i2c0_req), .DE(i2c0_de), .SDA(HDMI0_RX_SDA), .SCL(HDMI0_RX_SCL),
  .txReg(i2c0_tx[7:0]), .rxReg(i2c0_rx[7:0]), .address(i2c0_addr), .sub_address(i2c0_saddr), .busy(busy));
  
+reg mem_wr;
+reg [5:0]mem_addr;
+reg [23:0]mem_in;
+wire [23:0]mem_out;
+reg mem_done;
+
+ram_init mem(.clk(CLOCK_50), .WE(mem_wr), .address(mem_addr), .data_in(mem_in), .data_out(mem_out));
+
 assign VGA_R = HDMI0_RX_P[7:0];
 assign VGA_G = HDMI0_RX_P[15:8];
 assign VGA_B = HDMI0_RX_P[23:16];
@@ -129,62 +140,74 @@ initial begin
 	
 	LEDG[8:0] = 0;
 	LEDR[17:0] = 0;
-	val0 = 0;
-	val6 = 0;
-	val7 = 0;
 	
 	HDMI0_RX_RESET = 1;
 	de_oneshot = 0;
-	temp = 0;
+	
+	i2c0_addr = 8'b0;
+	i2c0_saddr = 8'b0;
+	
+	mem_wr = 0;
+	mem_addr = 6'b0;
+	mem_in = 24'b0;
+	mem_done = 0;
 end
 
 always @(posedge CLOCK_50) begin
 	val0 = SW[3:0];
 	val1 = SW[7:4];
-	val6 = SW[13:10];
-	val7 = SW[17:14];
-	i2c0_saddr = SW[17:10];		// subaddress = SW17-S10
-	i2c0_addr = 7'b1001100;		// IO map address = 0x98
+	val2 = i2c0_rx[3:0];
+	val3 = i2c0_rx[7:4];
+	val6 = i2c0_addr[3:0];
+	val7 = i2c0_addr[6:4];
+	val4 = i2c0_saddr[3:0];
+	val5 = i2c0_saddr[7:4];
 	
-	val4 = i2c0_rx[3:0];			// byte received
-	val5 = i2c0_rx[7:4];
+	if(mem_done == 0 && busy == 0) begin
+		i2c0_tx = mem_out[7:0];
+		i2c0_saddr = mem_out[15:8];
+		i2c0_addr = mem_out[23:16]; 
+		i2c0_size = 1;
+		i2c0_wren = 1;
+		i2c0_req = 1;
+		mem_addr = mem_addr + 6'b1;
+	end
+	
+	if(mem_addr == 6'b100100) begin
+		mem_done = 1;
+	end
+	
+	if(mem_addr == 6'b100100) begin
+		mem_done = 1;
+	end
+	
+	if(KEY[0] == 0 && busy == 0) begin			// KEY0 pressed
+		i2c0_tx[7:0] = SW[7:0];		// byte to transfer = SW7-SW0
+		i2c0_wren = 1;					// perform i2c write
+		i2c0_size = 1;					// write only 1 byte
+		i2c0_req = 1;
+	end
+	else if(KEY[1] == 0 && busy == 0) begin		// KEY1 pressed
+		i2c0_wren = 0;					// perform i2c read
+		i2c0_size = 1;					// read only 1 byte
+		i2c0_req = 1;
+	end
+	else if(KEY[2] == 0) begin
+		i2c0_addr = SW[7:0];
+	end 
+	else if(KEY[3] == 0) begin
+		i2c0_saddr = SW[7:0];
+	end
+	
+	if(busy == 1)begin
+		i2c0_req = 0;
+	end
   
-  if(KEY[0] == 0 && busy == 0 && temp == 0) begin			// KEY0 pressed
-	 i2c0_tx[7:0] = SW[7:0];			// byte to transfer = SW7-SW0
-    i2c0_wren = 1;					// perform i2c write
-	 i2c0_size = 1;					// write only 1 byte
-	 i2c0_req = 1;
-	 temp = 1;
-  end
-  else if(KEY[1] == 0 && busy == 0 && temp == 0) begin		// KEY1 pressed
-    i2c0_tx[7:0] = SW[7:0];			// byte to transfer = SW7-SW0
-    i2c0_wren = 0;					// perform i2c read
-	 i2c0_size = 1;					// read only 1 byte
-	 i2c0_req = 1;
-	 temp = 1;
-  end
-  else if(KEY[2] == 0 && busy == 0 && temp == 0) begin		// KEY2 pressed
-	 i2c0_wren = 1;				// write 5 configuration bytes to IO map
-	 i2c0_saddr = 0;
-	 i2c0_tx[63:0] = 64'h4240F20608;
-	 i2c0_size = 5;
-	 i2c0_req = 1;
-	 temp = 1;
-  end
-  else if(KEY[3] == 0) begin
-	 temp = 0;
-  end
-  else if(busy == 1)begin
-    i2c0_req = 0;
-  end
+	if(i2c0_de & !de_oneshot) begin
+		i2c0_tx = i2c0_tx >> 8;
+	end
   
-  if(i2c0_de & !de_oneshot) begin
-	i2c0_tx = i2c0_tx >> 8;
-  end
-  
-  de_oneshot = i2c0_de;
-  
-  LEDG[1] = busy;
+	de_oneshot = i2c0_de;
 end
 
 endmodule

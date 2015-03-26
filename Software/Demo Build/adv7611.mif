@@ -1,0 +1,70 @@
+-- Copyright (C) 1991-2012 Altera Corporation
+-- Your use of Altera Corporation's design tools, logic functions 
+-- and other software and tools, and its AMPP partner logic 
+-- functions, and any output files from any of the foregoing 
+-- (including device programming or simulation files), and any 
+-- associated documentation or information are expressly subject 
+-- to the terms and conditions of the Altera Program License 
+-- Subscription Agreement, Altera MegaCore Function License 
+-- Agreement, or other applicable license agreement, including, 
+-- without limitation, that your use is for the sole purpose of 
+-- programming logic devices manufactured by Altera and sold by 
+-- Altera or its authorized distributors.  Please refer to the 
+-- applicable agreement for further details.
+
+-- Quartus II generated Memory Initialization File (.mif)
+
+-- Author: Cassandra Chow
+-- This .mif file initializes memory with all the I2C transfers
+-- needed to initialize the ADV7611. Every word is 24-bits which
+-- includes the register map address, subaddress, and 1 byte data
+-- to write to that address
+
+DEPTH = 64;				-- size of memory in words
+WIDTH = 24;				-- size of word in bits
+ADDRESS_RADIX = HEX;	-- radix for address values
+DATA_RADIX = HEX;		-- radix for data values
+
+CONTENT 
+BEGIN
+	00 : 98F480;		-- (IO) CEC Map address = 0x80
+	01 : 98F57C;		-- (IO) INFOFRAME Map address = 0x7C
+	02 : 98F84C;		-- (IO) DPLL Map address = 0x4C
+	03 : 98F964;		-- (IO) KSV Map address = 0x64
+	04 : 98FA6C;		-- (IO) EDID Map address = 0x6C
+	05 : 98FB68;		-- (IO) HDMI Map address = 0x68
+	06 : 98FD44;		-- (IO) CP Map address = 0x44
+	
+	07 : 446C00;		-- (CP) ADI required
+	08 : 689B03;		-- (HDMI) ADI required
+	09 : 686F08;		-- (HDMI) ADI required, optimized DVI detection
+	0A : 68851F;		-- (HDMI) ADI required
+	0B : 688770;		-- (HDMI) ADI required
+	0C : 6857DA;		-- (HDMI) ADI required
+	0D : 685801;		-- (HDMI) ADI required
+	0E : 680398;		-- (HDMI) DIS_I2C_ZERO_COMPR[7] = 1
+	0F : 684C44;		-- (HDMI) NEW_VS_PARAM[2] = 1
+	
+	10 : 68C101;		-- (HDMI) ADI required
+	11 : 68C201;		-- (HDMI) ADI required
+	12 : 68C301;		-- (HDMI) ADI required
+	13 : 68C401;		-- (HDMI) ADI required
+	14 : 68C501;		-- (HDMI) ADI required
+	15 : 68C601;		-- (HDMI) ADI required
+	16 : 68C701;		-- (HDMI) ADI required
+	17 : 68C801;		-- (HDMI) ADI required
+	18 : 68C901;		-- (HDMI) ADI required
+	19 : 68CA01;		-- (HDMI) ADI required
+	1A : 68CB01;		-- (HDMI) ADI required
+	1B : 68CC01;		-- (HDMI) ADI required
+	
+	1C : 9820F8;		-- Manually assert hot plug
+	
+	1D : 980008;		-- (IO) VID_STD[5:0] = 0x08
+	1E : 980106;		-- (IO) PRIM_MODE[3:0] = 0x06, 60Hz
+	1F : 9802F2;		-- (IO) Set color space according to HDMI block, RGB_OUT = 1
+	20 : 980340;		-- (IO) Pixel bus & data format: 24-bit 4:4:4 SDR mode
+	21 : 980442;		-- (IO) XTAL = 28.63636 MHz, pixel data config
+	22 : 44C92D;		-- (CP) DIS_AUTO_PARAM_BUFF = 1
+	23 : 44BF13;		-- (CP) Enable free-run mode
+END;
