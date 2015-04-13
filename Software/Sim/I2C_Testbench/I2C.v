@@ -1,10 +1,7 @@
 /*==========================================================
 	File: I2C.v
-
 	Author: Cassandra Chow
-
 	Copyright DigiPen Institute of Technology 2014
-
 	Brief: Module for implementing i2c protocol targeted
 			 for the Altera DE2-115 Dev. Board
 ==========================================================*/
@@ -20,7 +17,8 @@ txReg,
 rxReg, 
 address, 
 sub_address, 
-error);
+busy,
+scl_ticks);
 				
 input			   clk_50;
 input			   WR;
@@ -31,17 +29,17 @@ input			   [6:0]address;
 input			   [7:0]sub_address;
 
 input			   [7:0]txReg;		// transmit register
-output reg	   [7:0]rxReg;		// receive register
+output reg	[7:0]rxReg;		// receive register
 
-inout			   SDA;
-inout 		   SCL;
+inout			      SDA;
+inout 		      SCL;
 output reg	   DE;			// data enable
 									// ... indicates when register has processed 1 byte
 									
-output reg	error;
+output reg	busy;
 
 // state variables
-reg  	[1:0]State;
+reg [1:0]State;
 reg	[1:0]subState;
 reg	[1:0]Next;
 reg	[1:0]subNext;
@@ -59,13 +57,13 @@ parameter	ssIDLE		= 2'b11;
 
 // clock control variables
 reg			[6:0]counter;
-reg         counter_reset;
+reg   counter_reset;
 
 // data control variables
 reg			[7:0]bytes_processed;
-reg			[3:0]scl_ticks;
-reg		   I2C_DATA;
-reg 		   I2C_CLK;
+output reg			[3:0]scl_ticks;
+reg		 I2C_DATA;
+reg 		I2C_CLK;
 
 // system clocks
 reg			CE;
@@ -94,7 +92,7 @@ initial begin
 	bytes_processed = 0;
 	
 	scl_ticks = 0;
-	error = 0;
+	busy = 0;
 end
 
 // 7-bit counter -> 390.625 kHz
@@ -127,11 +125,15 @@ always @ (posedge LCLK) begin
 	case(State)
 		IDLE: begin
 			I2C_DATA <= 1;
-			if(request) begin
+			if(request & ~busy) begin
 				Next <= SETUP;			  // goto SETUP state
 				subNext <= ssADDR;
 		    I2C_DATA <= 0;     // send start bit
 				CE <= 1;
+				busy <= 1;
+			end
+			else begin
+			  busy <= 0;
 			end
 		end
 		SETUP: begin
@@ -189,7 +191,6 @@ always @ (posedge LCLK) begin
 					end
 					else begin							            // set SDA to 'Z'
 						I2C_DATA <= 1;						       // to receive ACK
-						CE <= 0;                   // release master control of clock
 						subNext <= ssRECEIVE;
 					end
 				end
@@ -197,7 +198,6 @@ always @ (posedge LCLK) begin
 					if(bytes_processed < length) begin
 						if(scl_ticks < 8) begin			         // receive data bit
 							I2C_DATA <= 1;						             // SDA is 'Z'
-							rxReg[7 - scl_ticks] = SDA;      // MSB first
 						end
 						else if(scl_ticks == 8) begin // send ACK/NACK
 							if(bytes_processed + 1 == length) begin
@@ -211,6 +211,7 @@ always @ (posedge LCLK) begin
 					else if(bytes_processed == length) begin
 					  // setup for stop cond.
 			      I2C_DATA <= 0;
+			      CE <= 0;
 					end
 					else begin
 						I2C_DATA <= 1;
@@ -248,14 +249,14 @@ always @ (posedge SCL) begin
 	case(State)
 	  IDLE: begin
 	    scl_ticks = 0;
-	    DE <= 0;
+	    DE = 0;
 	  end
 		SETUP: begin
-		  DE <= 0;
+		  DE = 0;
 			if(scl_ticks == 9) begin
 				scl_ticks <= 0;
 				if(SDA == 1) begin // received NACK
-					error <= 1;
+					//error = 1;
 				end
 			end
 			bytes_processed <= 0;
@@ -275,16 +276,14 @@ always @ (posedge SCL) begin
 				end
 				ssRECEIVE: begin
 					if(scl_ticks == 9 || CE == 0) begin
-						bytes_processed <= bytes_processed + 1;
-						DE <= 1;
+						bytes_processed = bytes_processed + 1;
+						DE = 1;
+						scl_ticks = 0;
 					end
 					else begin
-						DE <= 0;
-					end
-				
-					if(scl_ticks == 9) begin
-						scl_ticks <= 0;
-						// Sent ACK/NACK is handled on LCLK
+						DE = 0;
+						rxReg = rxReg << 1;
+						rxReg[0] = SDA;
 					end
 				end
 			endcase
@@ -306,4 +305,3 @@ always @ (posedge SCL) begin
 end
 
 endmodule
-

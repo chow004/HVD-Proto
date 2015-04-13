@@ -1,10 +1,7 @@
 /*==========================================================
 	File: I2C_TEST_Transmit.v
-
 	Author: Cassandra Chow
-
 	Copyright DigiPen Institute of Technology 2014
-
 	Brief: Testbench Module for the transmit operations of
 	       the I2C module in i2c.v
 ==========================================================*/
@@ -23,22 +20,26 @@ module I2C_TEST_Transmit();
   wire de;           // data enable line
   wire scl;          // clock line
   
-  reg [55:0]Data;    // buffer of data to transmit
+  wire busy;
+  wire [3:0]scl_count;
+  
+  reg [31:0]Data;    // buffer of data to transmit
   
   // i2c modules
   I2C M_i2c(.clk_50(clk), .WR(wren), .length(length), .request(request), .DE(de),
-      .SDA(sda), .SCL(scl), .txReg(Tdata), .rxReg(Rdata), .address(addr), .sub_address(saddr));
+      .SDA(sda), .SCL(scl), .txReg(Tdata), .rxReg(Rdata), .address(addr), .sub_address(saddr),
+      .busy(busy), .scl_ticks(scl_count));
   
   reg [8:0]temp;
   reg [2:0]num_xmit;
   
   initial begin 
     // start testing
-    Data = 56'h153ABCF800EC2A;
-    addr = 7'b0011111;
-    saddr = 8'b11001100;
+    Data = 32'h78563412;
+    addr = 7'b1001100;
+    saddr = 8'b00000001;
     wren = 1; // WRITE operation
-    length = 2; // 2x 8-bit data chunks
+    length = 1;
     
     Tdata = Data[7:0];  // load first 7-bit chunk into transmit reg
     Data = Data >> 8;
@@ -51,7 +52,7 @@ module I2C_TEST_Transmit();
     Tdata = Data[7:0];
     Data = Data >> 8;
     num_xmit = num_xmit + 1;
-    if(num_xmit == 3) begin
+    if(num_xmit == 4) begin
       request = 0;
     end
     $display("sda -> %b", temp);
@@ -69,4 +70,3 @@ module I2C_TEST_Transmit();
   end
       
 endmodule
-

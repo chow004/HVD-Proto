@@ -1,10 +1,7 @@
 /*==========================================================
 	File: I2C_TEST_Receive.v
-
 	Author: Cassandra Chow
-
 	Copyright DigiPen Institute of Technology 2014
-
 	Brief: Testbench Module for the receive operations of
 	       the I2C module in i2c.v
 ==========================================================*/
@@ -23,17 +20,21 @@ module I2C_TEST_Receive();
   wire de;           // data enable line
   wire scl;          // clock line
   
+  wire busy;
+  wire [3:0]scl_count;
+  
   // i2c modules
   I2C M_i2c(.clk_50(clk), .WR(wren), .length(length), .request(request), .DE(de),
-      .SDA(sda), .SCL(scl), .txReg(Tdata), .rxReg(Rdata), .address(addr), .sub_address(saddr));
+      .SDA(sda), .SCL(scl), .txReg(Tdata), .rxReg(Rdata), .address(addr), .sub_address(saddr),
+      .busy(busy), .scl_ticks(scl_count));
   
   reg [8:0]temp;
   
   initial begin
-    addr = 7'b0000010;
+    addr = 7'b1001100;
     saddr = 8'b00000001;
     wren = 0; // READ operation
-    length = 3; // receive 3 bytes
+    length = 1; // receive 1 byte
     
     #5000 request = 1;
     #2560 request = 0;
@@ -50,4 +51,3 @@ module I2C_TEST_Receive();
   end
   
 endmodule
-  
