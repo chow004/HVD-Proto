@@ -1,10 +1,7 @@
 /*==========================================================
 	File: I2C.v
-
 	Author: Cassandra Chow
-
 	Copyright DigiPen Institute of Technology 2014
-
 	Brief: Module for implementing i2c protocol targeted
 			 for the Altera DE2-115 Dev. Board
 ==========================================================*/
@@ -20,7 +17,10 @@ txReg,
 rxReg, 
 address, 
 sub_address, 
-busy);
+busy,
+scl_ticks,
+State,
+subState);
 				
 input			   clk_50;
 input			   WR;
@@ -30,19 +30,19 @@ input			   request;
 input			   [6:0]address;
 input			   [7:0]sub_address;
 
-input			   [7:0]txReg;		// transmit register
-output reg	   [7:0]rxReg;		// receive register
+input		   [7:0]txReg;		// transmit register
+output reg	[7:0]rxReg;		// receive register
 
-inout			   SDA;
-inout 		   SCL;
-output reg	   DE;			// data enable
+inout			SDA;
+inout			SCL;
+output reg	DE;			// data enable
 									// ... indicates when register has processed 1 byte
 									
 output reg	busy;
 
 // state variables
-reg  	[1:0]State;
-reg	[1:0]subState;
+output reg 	[1:0]State;
+output reg	[1:0]subState;
 reg	[1:0]Next;
 reg	[1:0]subNext;
 
@@ -59,14 +59,13 @@ parameter	ssIDLE		= 2'b11;
 
 // clock control variables
 reg			[6:0]counter;
-reg         counter_reset;
+reg   counter_reset;
 
 // data control variables
 reg			[7:0]bytes_processed;
-reg			[3:0]scl_ticks;
-reg		   I2C_READY;
-reg		   I2C_DATA;
-reg 		   I2C_CLK;
+output reg			[3:0]scl_ticks;
+reg		 I2C_DATA;
+reg 		I2C_CLK;
 
 // system clocks
 reg			CE;
@@ -96,7 +95,6 @@ initial begin
 	
 	scl_ticks = 0;
 	busy = 0;
-	I2C_READY = 0;
 end
 
 // 7-bit counter -> 390.625 kHz
@@ -128,21 +126,21 @@ always @ (posedge LCLK) begin
 	
 	case(State)
 		IDLE: begin
-		   busy <= 0;
 			I2C_DATA <= 1;
-			I2C_READY <= 1;
-			if(request) begin
+			if(request & ~busy) begin
 				Next <= SETUP;			  // goto SETUP state
 				subNext <= ssADDR;
-		      I2C_DATA <= 0;     // send start bit
+		    I2C_DATA <= 0;     // send start bit
 				CE <= 1;
-				I2C_READY <= 0;
+				busy <= 1;
+			end
+			else begin
+			  busy <= 0;
 			end
 		end
 		SETUP: begin
 			case(subState)
 				ssADDR: begin
-					busy <= 1;
 					if(scl_ticks < 7) begin			// send 7-bit addr
 						I2C_DATA = address[6 - scl_ticks];
 					end
@@ -194,14 +192,14 @@ always @ (posedge LCLK) begin
 						I2C_DATA <= 1;
 					end
 					else begin							            // set SDA to 'Z'
-						I2C_DATA <= 1;						         // to receive ACK
+						I2C_DATA <= 1;						       // to receive ACK
 						subNext <= ssRECEIVE;
 					end
 				end
 				ssRECEIVE: begin
 					if(bytes_processed < length) begin
-						if(scl_ticks < 8) begin
-							I2C_DATA <= 1;						      // SDA is 'Z'
+						if(scl_ticks < 8) begin			         // receive data bit
+							I2C_DATA <= 1;						             // SDA is 'Z'
 						end
 						else if(scl_ticks == 8) begin // send ACK/NACK
 							if(bytes_processed + 1 == length) begin
@@ -214,8 +212,8 @@ always @ (posedge LCLK) begin
 					end
 					else if(bytes_processed == length) begin
 					  // setup for stop cond.
-			        I2C_DATA <= 0;
-					  CE <= 0;
+			      I2C_DATA <= 0;
+			      CE <= 0;
 					end
 					else begin
 						I2C_DATA <= 1;
@@ -249,44 +247,47 @@ always @ (posedge LCLK) begin
 end
 
 always @ (posedge SCL) begin
-	
 	scl_ticks = scl_ticks + 1;
-	
 	case(State)
 	  IDLE: begin
-	    scl_ticks <= 0;
-	    DE <= 0;
+	    scl_ticks = 0;
+	    DE = 0;
 	  end
-	  SETUP: begin
-		  DE <= 0;
-		  bytes_processed <= 0;
-		  if(scl_ticks == 9) begin
-		    scl_ticks <= 0;
-		  end
+		SETUP: begin
+		  DE = 0;
+			if(scl_ticks == 9) begin
+				scl_ticks <= 0;
+				if(SDA == 1) begin // received NACK
+					//error = 1;
+				end
+			end
+			bytes_processed <= 0;
 		end
 		READ: begin
 			case(subState)
 			  ssIDLE: begin
 			    scl_ticks <= 0;
 			  end
-			  ssADDR: begin
-				 if(subNext == ssRECEIVE) begin
-					scl_ticks <= 0;
-				 end
-			  end
-			  ssRECEIVE: begin
-					if(scl_ticks < 9) begin
-						rxReg[8 - scl_ticks] <= SDA;
-					end
-					if(scl_ticks == 9 || CE == 0) begin
-						bytes_processed <= bytes_processed + 1;
+				ssADDR: begin
+					if(scl_ticks == 9) begin
 						scl_ticks <= 0;
-						DE <= 1;
+						if(SDA == 1) begin // received NACK
+							// indicate error here
+					   end
+				  end
+				end
+				ssRECEIVE: begin
+					if(scl_ticks == 9 || CE == 0) begin
+						bytes_processed = bytes_processed + 1;
+						DE = 1;
+						scl_ticks = 0;
 					end
 					else begin
-						DE <= 0;
+						DE = 0;
+						rxReg = rxReg << 1;
+						rxReg[0] = SDA;
 					end
-			  end
+				end
 			endcase
 		end
 		WRITE: begin
@@ -294,6 +295,9 @@ always @ (posedge SCL) begin
 				scl_ticks <= 0;
 				bytes_processed <= bytes_processed + 1;
 				DE <= 1;
+				if(SDA == 1) begin // received NACK
+					// indicate error here
+				end
 			end
 			else begin
 			  DE <= 0;
@@ -303,4 +307,3 @@ always @ (posedge SCL) begin
 end
 
 endmodule
-

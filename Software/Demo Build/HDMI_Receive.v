@@ -109,18 +109,24 @@ reg		i2c0_wren;				// indicates r/w for i2c
 reg		[7:0]i2c0_size;		// indicates r/w size in bytes for i2c
 reg		i2c0_req;				// controls i2c requests
 wire		i2c0_de;					// indicates when i2c data has been processed
-reg		[63:0]i2c0_tx;			// transmit reg
-wire		[63:0]i2c0_rx;			// receive reg
+reg		[7:0]i2c0_tx;			// transmit reg
+wire		[7:0]i2c0_rx;			// receive reg
 reg		[6:0]i2c0_addr;		// address    (HDMI map address)
 reg		[7:0]i2c0_saddr;		// subaddress (HDMI subaddress in map)
 
 wire		busy;
+wire		[3:0]ticks;
+wire		[1:0]state;
+wire		[1:0]substate;
+
 reg		de_oneshot;
+reg		[18:0]i2c0_reset_delay;
 
 // i2c module
 I2C receiver_i2c(.clk_50(CLOCK_50), .WR(i2c0_wren), .length(i2c0_size),
  .request(i2c0_req), .DE(i2c0_de), .SDA(HDMI0_RX_SDA), .SCL(HDMI0_RX_SCL),
- .txReg(i2c0_tx[7:0]), .rxReg(i2c0_rx[7:0]), .address(i2c0_addr), .sub_address(i2c0_saddr), .busy(busy));
+ .txReg(i2c0_tx[7:0]), .rxReg(i2c0_rx[7:0]), .address(i2c0_addr), .sub_address(i2c0_saddr),
+ .busy(busy), .scl_ticks(ticks), .State(state), .subState(substate));
  
 reg mem_wr;
 reg [11:0]mem_addr;
@@ -150,6 +156,7 @@ initial begin
 	
 	i2c0_addr = 8'b0;
 	i2c0_saddr = 8'b0;
+	i2c0_reset_delay = 0;
 	
 	mem_wr = 0;
 	mem_addr = 12'b0;
@@ -167,49 +174,77 @@ always @(posedge CLOCK_50) begin
 	val4 = i2c0_saddr[3:0];
 	val5 = i2c0_saddr[7:4];
 	
-	if(mem_done == 0 && busy == 0 && i2c0_req == 0) begin
-		i2c0_tx = mem_out[7:0];
-		i2c0_saddr = mem_out[15:8];
-		i2c0_addr = mem_out[23:17]; 
+/*	if(i2c0_reset_delay == 0 && busy == 0 && i2c0_req == 0) begin
+		// reset main i2c, set registers to default val
+		i2c0_tx = 8'h80;
+		i2c0_saddr = 8'hFF;
+		i2c0_addr = 7'b1001100; // 0x98 (IO)
 		i2c0_size = 1;
 		i2c0_wren = 1;
 		i2c0_req = 1;
-		mem_addr = mem_addr + 12'b1;
-	end
-	
-	if(mem_addr == 12'h13B) begin
-		mem_done = 1;
-	end
-	
-	if(KEY[0] == 0 && busy == 0 && i2c0_req == 0) begin			// KEY0 pressed
-		i2c0_tx[7:0] = SW[7:0];		// byte to transfer = SW7-SW0
-		i2c0_wren = 1;					// perform i2c write
-		i2c0_size = 1;					// write only 1 byte
-		i2c0_req = 1;
-	end
-	else if(KEY[1] == 0 && busy == 0 && i2c0_req == 0) begin		// KEY1 pressed
-		i2c0_wren = 0;					// perform i2c read
-		i2c0_size = 1;					// read only 1 byte
-		i2c0_req = 1;
-	end
-	else if(KEY[2] == 0) begin // input address
-		i2c0_addr = SW[7:1];
+		i2c0_reset_delay = i2c0_reset_delay + 19'b1;
 	end 
-	else if(KEY[3] == 0) begin // input sub-address
-		i2c0_saddr = SW[7:0];
-	end
+	else if(i2c0_reset_delay[18] & i2c0_reset_delay[15]) begin
+		// ^^^ wait until rest delay count reaches 294,912 (approx. 6 ms)
+		LEDR[0] = 0; */
+
+/*		if(~mem_done & ~busy & ~i2c0_req) begin
+			i2c0_tx = mem_out[7:0];
+			i2c0_saddr = mem_out[15:8];
+			i2c0_addr = mem_out[23:17]; 
+			i2c0_size = 1;
+			i2c0_wren = 1;
+			i2c0_req = 1;
+			mem_addr = mem_addr + 12'b1;
+		end
 	
-	if(busy == 1)begin
-		i2c0_req = 0;
+		if(mem_addr == 12'h12B) begin
+			mem_done = 1;
+		end */
+	
+		if(~KEY[0] & ~i2c0_req & ~busy) begin			// KEY0 pressed
+			i2c0_tx[7:0] = SW[7:0];		// byte to transfer = SW7-SW0
+			i2c0_wren = 1;					// perform i2c write
+			i2c0_size = 1;					// write only 1 byte
+			i2c0_req = 1;
+		end
+		else if(~KEY[1] & ~i2c0_req & ~busy) begin		// KEY1 pressed
+			i2c0_wren = 0;					// perform i2c read
+			i2c0_size = 1;					// read only 1 byte
+			i2c0_req = 1;
+		end
+		else if(~KEY[2]) begin // input address
+			i2c0_addr = SW[7:1];
+		end 
+		else if(~KEY[3]) begin // input sub-address
+			i2c0_saddr = SW[7:0];
+		end
+	
+/*		if(i2c0_de & !de_oneshot) begin
+			i2c0_tx = i2c0_tx >> 8;
+		end
+  
+		de_oneshot = i2c0_de;
 	end
-  
-	if(i2c0_de & !de_oneshot) begin
-		i2c0_tx = i2c0_tx >> 8;
+	else begin
+		i2c0_reset_delay = i2c0_reset_delay + 19'b1;
+		LEDR[0] = 1;
 	end
-  
-	de_oneshot = i2c0_de;
-  
-  LEDG[0] = busy;
+*/
+		if(busy == 1)begin
+			i2c0_req = 0;
+		end
+	
+		LEDG[0] = busy;
+		LEDG[1] = i2c0_req;
+		LEDR[17:14] = ticks;
+		LEDR[1:0] = state;
+		LEDR[7:6] = substate;
+		
+		if(SW[17]) begin
+			mem_done = 0;
+			mem_addr = 12'b0;
+		end
 end
 
 endmodule
