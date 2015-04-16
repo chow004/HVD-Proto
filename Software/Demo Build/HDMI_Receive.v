@@ -6,7 +6,7 @@
 	Copyright DigiPen Institute of Technology 2014
 
 	Brief: Module for interfacing with the Analog Devices
-	HDMI Receiver, ADV7611
+	HDMI Receiver, ADV7611. Top-level
 ==========================================================*/
 module HDMI_Receive (
 CLOCK_50,
@@ -118,6 +118,7 @@ wire		busy;
 wire		[3:0]ticks;
 wire		[1:0]state;
 wire		[1:0]substate;
+wire		[7:0]bytes;
 
 reg		de_oneshot;
 reg		[18:0]i2c0_reset_delay;
@@ -126,7 +127,7 @@ reg		[18:0]i2c0_reset_delay;
 I2C receiver_i2c(.clk_50(CLOCK_50), .WR(i2c0_wren), .length(i2c0_size),
  .request(i2c0_req), .DE(i2c0_de), .SDA(HDMI0_RX_SDA), .SCL(HDMI0_RX_SCL),
  .txReg(i2c0_tx[7:0]), .rxReg(i2c0_rx[7:0]), .address(i2c0_addr), .sub_address(i2c0_saddr),
- .busy(busy), .scl_ticks(ticks), .State(state), .subState(substate));
+ .busy(busy), .scl_ticks(ticks), .State(state), .subState(substate), .bytes_processed(bytes));
  
 reg mem_wr;
 reg [11:0]mem_addr;
@@ -235,11 +236,11 @@ always @(posedge CLOCK_50) begin
 			i2c0_req = 0;
 		end
 	
-		LEDG[0] = busy;
-		LEDG[1] = i2c0_req;
+		LEDG[7:0] = bytes;
 		LEDR[17:14] = ticks;
-		LEDR[1:0] = state;
-		LEDR[7:6] = substate;
+		LEDR[1:0] = substate;
+		LEDR[7:6] = state;
+		LEDR[12] = busy;
 		
 		if(SW[17]) begin
 			mem_done = 0;

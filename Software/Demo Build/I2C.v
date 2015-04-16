@@ -20,7 +20,8 @@ sub_address,
 busy,
 scl_ticks,
 State,
-subState);
+subState,
+bytes_processed);
 				
 input			   clk_50;
 input			   WR;
@@ -62,7 +63,7 @@ reg			[6:0]counter;
 reg   counter_reset;
 
 // data control variables
-reg			[7:0]bytes_processed;
+output reg			[7:0]bytes_processed;
 output reg			[3:0]scl_ticks;
 reg		 I2C_DATA;
 reg 		I2C_CLK;
@@ -130,7 +131,7 @@ always @ (posedge LCLK) begin
 			if(request & ~busy) begin
 				Next <= SETUP;			  // goto SETUP state
 				subNext <= ssADDR;
-		    I2C_DATA <= 0;     // send start bit
+				I2C_DATA <= 0;     // send start bit
 				CE <= 1;
 				busy <= 1;
 			end
@@ -140,6 +141,12 @@ always @ (posedge LCLK) begin
 		end
 		SETUP: begin
 			case(subState)
+				ssIDLE: begin				// invalid substate
+					subNext <= ssADDR;
+				end
+				ssRECEIVE: begin			// invalid substate
+					subNext <= ssADDR;
+				end
 				ssADDR: begin
 					if(scl_ticks < 7) begin			// send 7-bit addr
 						I2C_DATA = address[6 - scl_ticks];
@@ -171,6 +178,9 @@ always @ (posedge LCLK) begin
 		end
 		READ: begin
 			case(subState)
+				ssSADDR: begin							// invalid substate
+					subNext <= ssIDLE;
+				end
 				ssIDLE: begin
 				  if(I2C_DATA == 0) begin // prep for start cond.		
 					  I2C_DATA <= 1;
@@ -210,7 +220,7 @@ always @ (posedge LCLK) begin
 							end
 						end
 					end
-					else if(bytes_processed == length) begin
+					else if(CE == 1) begin
 					  // setup for stop cond.
 			      I2C_DATA <= 0;
 			      CE <= 0;
@@ -232,7 +242,7 @@ always @ (posedge LCLK) begin
 				  I2C_DATA <= 1;
 				end
 			end
-			else if(bytes_processed == length) begin
+			else if(CE == 1) begin
 			  // setup for stop cond.
 			  CE <= 0;
 			  I2C_DATA <= 0;						
@@ -247,51 +257,66 @@ always @ (posedge LCLK) begin
 end
 
 always @ (posedge SCL) begin
-	scl_ticks = scl_ticks + 1;
 	case(State)
 	  IDLE: begin
-	    scl_ticks = 0;
-	    DE = 0;
+	    scl_ticks <= 0;
+	    DE <= 0;
 	  end
 		SETUP: begin
-		  DE = 0;
-			if(scl_ticks == 9) begin
+			DE <= 0;
+			if(scl_ticks == 8) begin
 				scl_ticks <= 0;
 				if(SDA == 1) begin // received NACK
 					//error = 1;
 				end
 			end
+			else if(Next != SETUP) begin
+				scl_ticks <= 0;
+			end
+			else begin
+				scl_ticks <= scl_ticks + 1;
+			end
 			bytes_processed <= 0;
 		end
 		READ: begin
 			case(subState)
-			  ssIDLE: begin
-			    scl_ticks <= 0;
-			  end
+				ssIDLE: begin
+					scl_ticks <= 0;
+				end
 				ssADDR: begin
-					if(scl_ticks == 9) begin
+					if(scl_ticks == 8) begin
 						scl_ticks <= 0;
 						if(SDA == 1) begin // received NACK
 							// indicate error here
-					   end
-				  end
-				end
-				ssRECEIVE: begin
-					if(scl_ticks == 9 || CE == 0) begin
-						bytes_processed = bytes_processed + 1;
-						DE = 1;
-						scl_ticks = 0;
+						end
+					end
+					else if(subNext == ssRECEIVE) begin
+						scl_ticks <= 0;
 					end
 					else begin
+						scl_ticks <= scl_ticks + 1;
+					end
+				end
+				ssRECEIVE: begin
+					if(scl_ticks == 8) begin
+						bytes_processed <= bytes_processed + 1;
+						DE <= 1;
+						scl_ticks <= 0;
+					end
+					else if(CE) begin
 						DE = 0;
 						rxReg = rxReg << 1;
 						rxReg[0] = SDA;
+						scl_ticks = scl_ticks + 1;
+					end
+					else begin
+						scl_ticks <= 0;
 					end
 				end
 			endcase
 		end
 		WRITE: begin
-			if(scl_ticks == 9 || CE == 0) begin
+			if(scl_ticks == 8) begin
 				scl_ticks <= 0;
 				bytes_processed <= bytes_processed + 1;
 				DE <= 1;
@@ -299,11 +324,15 @@ always @ (posedge SCL) begin
 					// indicate error here
 				end
 			end
+			else if(CE) begin
+				scl_ticks = scl_ticks + 1;
+			end
 			else begin
-			  DE <= 0;
+				DE <= 0;
 			end
 		end
 	endcase
 end
 
 endmodule
+
