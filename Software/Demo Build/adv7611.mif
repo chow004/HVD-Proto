@@ -20,334 +20,331 @@
 -- includes the register map address, subaddress, and 1 byte data
 -- to write to that address
 
-DEPTH = 512;			-- size of memory in words
-WIDTH = 24;				-- size of word in bits
-ADDRESS_RADIX = HEX;	-- radix for address values
-DATA_RADIX = HEX;		-- radix for data values
+DEPTH = 512;            -- size of memory in words
+WIDTH = 24;             -- size of word in bits
+ADDRESS_RADIX = HEX;    -- radix for address values
+DATA_RADIX = HEX;       -- radix for data values
 
 CONTENT 
 BEGIN
-	000 : 98FF80;		-- (IO) I2C reset
-	001 : 98F480;		-- (IO) CEC Map address = 0x80 **not working?
-	002 : 98F57C;		-- (IO) INFOFRAME Map address = 0x7C
-	003 : 98F84C;		-- (IO) DPLL Map address = 0x4C
-	004 : 98F964;		-- (IO) Repeater Map address = 0x64
-	005 : 98FA6C;		-- (IO) EDID Map address = 0x6C
-	006 : 98FB68;		-- (IO) HDMI Map address = 0x68
-	007 : 98FD44;		-- (IO) CP Map address = 0x44
-	
-	008 : 647700;		-- (Repeater) Disable Internal EDID
-	
-	009 : 6C0000;		-- (EDID) EDID header, EDID Block 0
-	00A : 6C01FF;
-	00B : 6C02FF;
-	00C : 6C03FF;
-	00D : 6C04FF;
-	00F : 6C05FF;
-	010 : 6C06FF;
-	011 : 6C0700;
-	012 : 6C0806;		-- (EDID) Manufacturer ID
-	013 : 6C098F;
-	014 : 6C0A07;		-- (EDID) Manufacturer Product Code
-	015 : 6C0B11;
-	016 : 6C0C01;		-- (EDID) Serial Number
-	017 : 6C0D00;
-	018 : 6C0E00;
-	019 : 6C0F00;
-	01A : 6C1017;		-- (EDID) Week of manufacture
-	01B : 6C1111;		-- (EDID) Year of manufacture
-	01C : 6C1201;		-- (EDID) EDID version (1 for 1.x)
-	01D : 6C1303;		-- (EDID) EDID version (3 for x.3)
-	01E : 6C1480;		-- (EDID) Basic Display Parameters
-	01F : 6C150C;
-	020 : 6C1609;
-	021 : 6C1778;
-	022 : 6C180A;
-	023 : 6C191E;		-- (EDID) Chromaticity Coordinates
-	024 : 6C1AAC;
-	025 : 6C1B98;
-	026 : 6C1C59;
-	027 : 6C1D56;
-	028 : 6C1E85;
-	029 : 6C1F28;
-	02A : 6C2029;
-	02B : 6C2152;
-	02C : 6C2257;
-	02D : 6C2300;		-- (EDID) Established timings
-	02E : 6C2400;
-	02F : 6C2500;
-	030 : 6C2601;		-- (EDID) Standard timing information
-	031 : 6C2701;
-	032 : 6C2801;
-	033 : 6C2901;
-	034 : 6C2A01;
-	035 : 6C2B01;
-	036 : 6C2C01;
-	037 : 6C2D01;
-	038 : 6C2E01;
-	039 : 6C2F01;
-	03A : 6C3001;
-	03B : 6C3101;
-	03C : 6C3201;
-	03D : 6C3301;
-	03E : 6C3401;
-	03F : 6C3501;
-	040 : 6C368C;		-- (EDID) Detailed timing descriptor, block 1
-	041 : 6C370A;
-	042 : 6C38D0;
-	043 : 6C398A;
-	044 : 6C3A20;
-	045 : 6C3BE0;
-	046 : 6C3C2D;
-	047 : 6C3D10;
-	048 : 6C3E10;
-	049 : 6C3F3E;
-	04A : 6C4096;
-	04B : 6C4100;
-	04C : 6C4281;
-	04D : 6C4360;
-	04E : 6C4400;
-	04F : 6C4500;
-	050 : 6C4600;
-	051 : 6C4718;
-	052 : 6C4801;		-- (EDID) Detailed timing descriptor, block 2
-	053 : 6C491D;
-	054 : 6C4A80;
-	055 : 6C4B18;
-	056 : 6C4C71;
-	057 : 6C4D1C;
-	058 : 6C4E16;
-	059 : 6C4F20;
-	05A : 6C5058;
-	05B : 6C512C;
-	05C : 6C5225;
-	05D : 6C5300;
-	05E : 6C5481;
-	05F : 6C5549;
-	060 : 6C5600;
-	061 : 6C5700;
-	062 : 6C5800;
-	063 : 6C599E;
-	064 : 6C5A00;		-- (EDID) Detailed timing descriptor, block 3
-	065 : 6C5B00;
-	066 : 6C5C00;
-	067 : 6C5DFC;
-	068 : 6C5E00;
-	069 : 6C5F56;
-	06A : 6C6041;
-	06B : 6C612D;
-	06C : 6C6231;
-	06D : 6C6338;
-	06E : 6C6430;
-	06F : 6C6539;
-	070 : 6C6641;
-	071 : 6C670A;
-	072 : 6C6820;
-	073 : 6C6920;
-	074 : 6C6A20;
-	075 : 6C6B20;
-	076 : 6C6C00;		-- (EDID) Detailed timing descriptor, block 4
-	077 : 6C6D00;
-	078 : 6C6E00;
-	079 : 6C6FFD;
-	07A : 6C7000;
-	07B : 6C7117;
-	07C : 6C723D;
-	07D : 6C730D;
-	07E : 6C742E;
-	07F : 6C7511;
-	080 : 6C7600;
-	081 : 6C770A;
-	082 : 6C7820;
-	083 : 6C7920;
-	084 : 6C7A20;
-	085 : 6C7B20;
-	086 : 6C7C20;
-	087 : 6C7D20;
-	088 : 6C7E01;		-- (EDID) Number of extensions to follow
-	089 : 6C7F1C;		-- (EDID) Block 0 Checksum
-	
-	08A : 6C8002;		-- (EDID) EDID Block 1
-	08B : 6C8103;
-	08C : 6C8234;
-	08D : 6C8371;
-	08E : 6C844D;
-	08F : 6C8582;
-	090 : 6C8605;
-	091 : 6C8704;
-	092 : 6C8801;
-	093 : 6C8910;
-	094 : 6C8A11;
-	095 : 6C8B14;
-	096 : 6C8C13;
-	097 : 6C8D1F;
-	098 : 6C8E06;
-	099 : 6C8F15;
-	09A : 6C9003;
-	09B : 6C9112;
-	09C : 6C9235;
-	09D : 6C930F;
-	09E : 6C947F;
-	09F : 6C9507;
-	0A0 : 6C9617;
-	0A1 : 6C971F;
-	0A2 : 6C9838;
-	0A3 : 6C991F;
-	0A4 : 6C9A07;
-	0A5 : 6C9B30;
-	0A6 : 6C9C2F;
-	0A7 : 6C9D07;
-	0A8 : 6C9E72;
-	0A9 : 6C9F3F;
-	0AA : 6CA07F;
-	0AB : 6CA172;
-	0AC : 6CA257;
-	0AD : 6CA37F;
-	0AE : 6CA400;
-	0AF : 6CA537;
-	0B0 : 6CA67F;
-	0B1 : 6CA772;
-	0B2 : 6CA883;
-	0B3 : 6CA94F;
-	0B4 : 6CAA00;
-	0B5 : 6CAB00;
-	0B6 : 6CAC67;
-	0B7 : 6CAD03;
-	0B8 : 6CAE0C;
-	0B9 : 6CAF00;
-	0BA : 6CB010;
-	0BB : 6CB100;
-	0BC : 6CB288;
-	0BD : 6CB32D;
-	0BE : 6CB400;
-	0BF : 6CB500;
-	0C0 : 6CB600;
-	0C1 : 6CB7FF;
-	0C2 : 6CB800;
-	0C3 : 6CB90A;
-	0C4 : 6CBA20;
-	0C5 : 6CBB20;
-	0C6 : 6CBC20;
-	0C7 : 6CBD20;
-	0C8 : 6CBE20;
-	0C9 : 6CBF20;
-	0CA : 6CC020;
-	0CB : 6CC120;
-	0CC : 6CC220;
-	0CD : 6CC320;
-	0CE : 6CC420;
-	0CF : 6CC520;
-	0D0 : 6CC600;
-	0D1 : 6CC700;
-	0D2 : 6CC800;
-	0D3 : 6CC9FF;
-	0D4 : 6CCA00;
-	0D5 : 6CCB0A;
-	0D6 : 6CCC20;
-	0D7 : 6CCD20;
-	0D8 : 6CCE20;
-	0D9 : 6CCF20;
-	0DA : 6CD020;
-	0DB : 6CD120;
-	0DC : 6CD220;
-	0DD : 6CD320;
-	0DE : 6CD420;
-	0DF : 6CD520;
-	0E0 : 6CD620;
-	0E1 : 6CD720;
-	0E2 : 6CD800;
-	0E3 : 6CD900;
-	0E4 : 6CDA00;
-	0E5 : 6CDBFF;
-	0E6 : 6CDC00;
-	0E7 : 6CDD0A;
-	0E8 : 6CDE20;
-	0E9 : 6CDF20;
-	0EA : 6CE020;
-	0EB : 6CE120;
-	0EC : 6CE220;
-	0ED : 6CE320;
-	0EE : 6CE420;
-	0EF : 6CE520;
-	0F0 : 6CE620;
-	0F1 : 6CE720;
-	0F2 : 6CE820;
-	0F3 : 6CE920;
-	0F4 : 6CEA00;
-	0F5 : 6CEB00;
-	0F6 : 6CEC00;
-	0F7 : 6CED00;
-	0F8 : 6CEE00;
-	0F9 : 6CEF00;
-	0FA : 6CF000;
-	0FB : 6CF100;
-	0FC : 6CF200;
-	0FD : 6CF300;
-	0FE : 6CF400;
-	0FF : 6CF500;
-	100 : 6CF600;
-	101 : 6CF700;
-	102 : 6CF800;
-	103 : 6CF900;
-	104 : 6CFA00;
-	105 : 6CFB00;
-	106 : 6CFC00;
-	107 : 6CFD00;
-	108 : 6CFE00;
-	109 : 6CFFDA;		-- (EDID) Block 1 Checksum
-	
-	10A : 647700;		-- (Repeater) Set MSb of SPA to location 0
-	10B : 645220;		-- (Repeater) Set the SPA for port B
-	10C : 645300;		-- (Repeater) Set the SPA for port B
-	10D : 64709E;		-- (Repeater) Set LSB of SPA location
-	10E : 647403;		-- Enable Internal EDID for Ports
-	
-	10F : 680398;		-- (HDMI) DIS_I2C_ZERO_COMPR[7] = 1 **not working?
-	110 : 684C44;		-- (HDMI) NEW_VS_PARAM[2] = 1
-	
-	111 : 686CA3;		-- Set HP_MANUAL = 1 **not working?
-	112 : 9820F8;		-- Manually assert hot plug
-	
-	113 : 980008;		-- (IO) VID_STD[5:0] = 0x08
-	114 : 980106;		-- (IO) PRIM_MODE[3:0] = 0x06, 60Hz
-	115 : 9802F2;		-- (IO) Set color space according to HDMI block, RGB_OUT = 1
-	116 : 980340;		-- (IO) Pixel bus & data format: 24-bit 4:4:4 SDR mode
-	117 : 980442;		-- (IO) XTAL = 28.63636 MHz, pixel data config
-	118 : 980528;		-- (IO) AV Codes Off
-	119 : 980B44;		-- (IO) Power up part
-	11A : 980C42;		-- (IO) Power up part
-	11B : 98147F;		-- (IO) Max drive strength
-	11C : 981580;		-- (IO) Disable tristate of pins
-	11D : 981983;		-- (IO) LLC DLL phase
-	11E : 983340;		-- (IO) LLC DLL enable
-	11F : 44BA01;		-- (CP) Set HDMI FreeRun
-	120 : 44C92D;		-- (CP) DIS_AUTO_PARAM_BUFF = 1
-	121 : 644081;		-- (Repeater) Disable HDCP 1.1 features
-	
-	122 : 446C00;		-- (CP) ADI required
-	123 : 689B03;		-- (HDMI) ADI required
-	124 : 686F08;		-- (HDMI) ADI required, optimized DVI detection
-	125 : 68851F;		-- (HDMI) ADI required
-	126 : 688770;		-- (HDMI) ADI required
-	127 : 6857DA;		-- (HDMI) ADI required **not working?
-	128 : 685801;		-- (HDMI) ADI required
-	129 : 68C101;		-- (HDMI) ADI required
-	12A : 68C201;		-- (HDMI) ADI required
-	12B : 68C301;		-- (HDMI) ADI required
-	12C : 68C401;		-- (HDMI) ADI required
-	12D : 68C501;		-- (HDMI) ADI required
-	12E : 68C601;		-- (HDMI) ADI required
-	12F : 68C701;		-- (HDMI) ADI required
-	130 : 68C801;		-- (HDMI) ADI required
-	131 : 68C901;		-- (HDMI) ADI required
-	132 : 68CA01;		-- (HDMI) ADI required
-	133 : 68CB01;		-- (HDMI) ADI required
-	134 : 68CC01;		-- (HDMI) ADI required
-	
-	135 : 680000;		-- (HDMI) Set HDMI Input Port A
-	136 : 6883FE;		-- (HDMI) Enable clock terminator for Port A
-	137 : 688D04;		-- (HDMI) LFG
-	138 : 688E1E;		-- (HDMI) HFG
-	139 : 681A8A;		-- (HDMI) unmute audio
-	13A : 687510;		-- (HDMI) DDC drive strength
+    000 : 98F480;       -- (IO) CEC Map address = 0x80
+    001 : 98F57C;       -- (IO) INFOFRAME Map address = 0x7C
+    002 : 98F84C;       -- (IO) DPLL Map address = 0x4C
+    003 : 98F964;       -- (IO) Repeater Map address = 0x64
+    004 : 98FA6C;       -- (IO) EDID Map address = 0x6C
+    005 : 98FB68;       -- (IO) HDMI Map address = 0x68
+    006 : 98FD44;       -- (IO) CP Map address = 0x44
+--  --- : 980001;       -- (IO) VID_STD[5:0] = 0x01
+    007 : 980106;       -- (IO) PRIM_MODE[3:0] = 0x06, HDMI-GR, 60Hz
+--  --- : 9802F2;       -- (IO) Set color space according to HDMI block, RGB_OUT = 1
+    008 : 9802F5;       -- (IO) Auto CSC, YCrCb out, Set op_656 bit
+--  --- : 980340;       -- (IO) Pixel bus & data format: 24-bit 4:4:4 SDR mode
+    009 : 980342;       -- (IO) 36-bit SDR 444 Mode 0
+--  --- : 980442;       -- (IO) XTAL = 28.63636 MHz, pixel data config
+    00A : 980528;       -- (IO) AV Codes Off
+--  --- : 9806A6;       -- (IO) Invert VS,HS pins
+--  --- : 980B44;       -- (IO) Power CP, digital section of HDMI block
+--  --- : 980C42;       -- (IO) Power output pads, clock to CP core, chip operational
+--  --- : 98147F;       -- (IO) Max drive strength
+    00B : 981580;       -- (IO) Disable tristate of pins
+    00C : 981983;       -- (IO) LLC-DLL enabled, normal LLC freq, DLL phase (delay)
+    00D : 983340;       -- (IO) LLC DLL set delay
+--  --- : 449100;       -- (CP) Tell CP to expect progressive video
+    00E : 44BA01;       -- (CP) Set HDMI FreeRun
+    00F : 644081;       -- (Repeater) Disable HDCP 1.1 features
+    
+    010 : 689B03;       -- (HDMI) ADI recommended
+    011 : 680008;       -- (HDMI) Set HDMI Input Port A (BG_MEAS_PORT_SEL = 001b)
+    012 : 680203;       -- (HDMI) Enable Ports A & B in background mode
+    013 : 6883FC;       -- (HDMI) Enable clock terminators for port A & B
+    014 : 686F0C;       -- (HDMI) ADI recommended -- changed to version 2.9c
+    015 : 68851F;       -- (HDMI) ADI recommended
+    016 : 688770;       -- (HDMI) ADI recommended
+    017 : 688D04;       -- (HDMI) LFG Port A
+    018 : 688E1E;       -- (HDMI) HFG Port B
+    019 : 681A8A;       -- (HDMI) unmute audio
+    01A : 6857DA;       -- (HDMI) ADI recommended
+    01B : 685801;       -- (HDMI) ADI recommended
+    01C : 687510;       -- (HDMI) DDC drive strength
+    01D : 689004;       -- (HDMI) LFG Port B
+    01E : 68911E;       -- (HDMI) HFG Port B
+    
+--  --- : 68C101;       -- (HDMI) ADI recommended
+--  --- : 68C201;       -- (HDMI) ADI recommended
+--  --- : 68C301;       -- (HDMI) ADI recommended
+--  --- : 68C401;       -- (HDMI) ADI recommended
+--  --- : 68C501;       -- (HDMI) ADI recommended
+--  --- : 68C601;       -- (HDMI) ADI recommended
+--  --- : 68C701;       -- (HDMI) ADI recommended
+--  --- : 68C801;       -- (HDMI) ADI recommended
+--  --- : 68C901;       -- (HDMI) ADI recommended
+--  --- : 68CA01;       -- (HDMI) ADI recommended
+--  --- : 68CB01;       -- (HDMI) ADI recommended
+--  --- : 68CC01;       -- (HDMI) ADI recommended
+--  --- : 680398;       -- (HDMI) DIS_I2C_ZERO_COMPR[7] = 1
+
+    01F : 647700;       -- (Repeater) Disable Internal EDID
+    020 : 6C0000;       -- (EDID) EDID header, EDID Block 0
+    021 : 6C01FF;       -- (EDID) Standard timing information
+    022 : 6C02FF;
+    023 : 6C03FF;
+    024 : 6C04FF;
+    025 : 6C05FF;
+    026 : 6C06FF;
+    027 : 6C0700;
+    028 : 6C0806;       -- (EDID) Manufacturer ID
+    029 : 6C098F;       
+    02A : 6C0A07;       -- (EDID) Manufacturer Product Code
+    02B : 6C0B11;       
+    02C : 6C0C01;       -- (EDID) Serial Number
+    02D : 6C0D00;
+    02E : 6C0E00;
+    02F : 6C0F00;
+    030 : 6C1017;       -- (EDID) Week of manufacture
+    031 : 6C1111;       -- (EDID) Year of manufacture
+    032 : 6C1201;       -- (EDID) EDID version (1 for 1.x)
+    033 : 6C1303;       -- (EDID) EDID version (3 for x.3)
+    034 : 6C1480;       -- (EDID) Basic Display Parameters
+    035 : 6C150C;
+    036 : 6C1609;
+    037 : 6C1778;
+    038 : 6C180A;
+    039 : 6C191E;       -- (EDID) Chromaticity Coordinates
+    03A : 6C1AAC;
+    03B : 6C1B98;
+    03C : 6C1C59;
+    03D : 6C1D56;
+    03E : 6C1E85;
+    03F : 6C1F28;
+    040 : 6C2029;
+    041 : 6C2152;
+    042 : 6C2257;
+    043 : 6C2300;       -- (EDID) Established timings
+    044 : 6C2400;       
+    045 : 6C2500;       
+    046 : 6C2601;       -- (EDID) Standard timing information
+    047 : 6C2701;
+    048 : 6C2801;
+    049 : 6C2901;
+    04A : 6C2A01;
+    04B : 6C2B01;
+    04C : 6C2C01;
+    04D : 6C2D01;
+    04E : 6C2E01;
+    04F : 6C2F01;
+    050 : 6C3001;
+    051 : 6C3101;
+    052 : 6C3201;
+    053 : 6C3301;
+    054 : 6C3401;
+    055 : 6C3501;
+    056 : 6C368C;       -- (EDID) Detailed timing descriptor, block 1
+    057 : 6C370A;
+    058 : 6C38D0;
+    059 : 6C398A;
+    05A : 6C3A20;
+    05B : 6C3BE0;
+    05C : 6C3C2D;
+    05D : 6C3D10;
+    05E : 6C3E10;
+    05F : 6C3F3E;
+    060 : 6C4096;
+    061 : 6C4100;
+    062 : 6C4281;
+    063 : 6C4360;
+    064 : 6C4400;
+    065 : 6C4500;
+    066 : 6C4600;
+    067 : 6C4718;
+    068 : 6C4801;       -- (EDID) Detailed timing descriptor, block 2
+    069 : 6C491D;
+    06A : 6C4A80;
+    06B : 6C4B18;
+    06C : 6C4C71;
+    06D : 6C4D1C;
+    06E : 6C4E16;
+    06F : 6C4F20;
+    070 : 6C5058;
+    071 : 6C512C;
+    072 : 6C5225;
+    073 : 6C5300;
+    074 : 6C5481;
+    075 : 6C5549;
+    076 : 6C5600;
+    077 : 6C5700;
+    078 : 6C5800;
+    079 : 6C599E;
+    07A : 6C5A00;       -- (EDID) Detailed timing descriptor, block 3
+    07B : 6C5B00;
+    07C : 6C5C00;
+    07D : 6C5DFC;
+    07E : 6C5E00;
+    07F : 6C5F56;
+    080 : 6C6041;
+    081 : 6C612D;
+    082 : 6C6231;
+    083 : 6C6338;
+    084 : 6C6430;
+    085 : 6C6539;
+    086 : 6C6641;
+    087 : 6C670A;
+    088 : 6C6820;
+    089 : 6C6920;
+    08A : 6C6A20;
+    08B : 6C6B20;
+    08C : 6C6C00;       -- (EDID) Detailed timing descriptor, block 4
+    08D : 6C6D00;
+    08E : 6C6E00;
+    08F : 6C6FFD;
+    090 : 6C7000;
+    091 : 6C7117;
+    092 : 6C723D;
+    093 : 6C730D;
+    094 : 6C742E;
+    095 : 6C7511;
+    096 : 6C7600;
+    097 : 6C770A;
+    098 : 6C7820;
+    099 : 6C7920;
+    09A : 6C7A20;
+    09B : 6C7B20;
+    09C : 6C7C20;
+    09D : 6C7D20;
+    09E : 6C7E01;       -- (EDID) Number of extensions to follow
+    09F : 6C7F1C;       -- (EDID) Block 0 Checksum
+    0A0 : 6C8002;       -- (EDID) EDID Block 1
+    0A1 : 6C8103;       
+    0A2 : 6C8234;
+    0A3 : 6C8371;
+    0A4 : 6C844D;
+    0A5 : 6C8582;
+    0A6 : 6C8605;
+    0A7 : 6C8704;
+    0A8 : 6C8801;
+    0A9 : 6C8910;
+    0AA : 6C8A11;
+    0AB : 6C8B14;
+    0AC : 6C8C13;
+    0AD : 6C8D1F;
+    0AE : 6C8E06;
+    0AF : 6C8F15;
+    0B0 : 6C9003;
+    0B1 : 6C9112;
+    0B2 : 6C9235;
+    0B3 : 6C930F;
+    0B4 : 6C947F;
+    0B5 : 6C9507;
+    0B6 : 6C9617;
+    0B7 : 6C971F;
+    0B8 : 6C9838;
+    0B9 : 6C991F;
+    0BA : 6C9A07;
+    0BB : 6C9B30;
+    0BC : 6C9C2F;
+    0BD : 6C9D07;
+    0BE : 6C9E72;
+    0BF : 6C9F3F;
+    0C0 : 6CA07F;
+    0C1 : 6CA172;
+    0C2 : 6CA257;
+    0C3 : 6CA37F;
+    0C4 : 6CA400;
+    0C5 : 6CA537;
+    0C6 : 6CA67F;
+    0C7 : 6CA772;
+    0C8 : 6CA883;
+    0C9 : 6CA94F;
+    0CA : 6CAA00;
+    0CB : 6CAB00;
+    0CC : 6CAC67;
+    0CD : 6CAD03;
+    0CE : 6CAE0C;
+    0CF : 6CAF00;
+    0D0 : 6CB010;
+    0D1 : 6CB100;
+    0D2 : 6CB288;
+    0D3 : 6CB32D;
+    0D4 : 6CB400;
+    0D5 : 6CB500;
+    0D6 : 6CB600;
+    0D7 : 6CB7FF;
+    0D8 : 6CB800;
+    0D9 : 6CB90A;
+    0DA : 6CBA20;
+    0DB : 6CBB20;
+    0DC : 6CBC20;
+    0DD : 6CBD20;
+    0DE : 6CBE20;
+    0DF : 6CBF20;
+    0E0 : 6CC020;
+    0E1 : 6CC120;
+    0E2 : 6CC220;
+    0E3 : 6CC320;
+    0E4 : 6CC420;
+    0E5 : 6CC520;
+    0E6 : 6CC600;
+    0E7 : 6CC700;
+    0E8 : 6CC800;
+    0E9 : 6CC9FF;
+    0EA : 6CCA00;
+    0EB : 6CCB0A;
+    0EC : 6CCC20;
+    0ED : 6CCD20;
+    0EE : 6CCE20;
+    0EF : 6CCF20;
+    0F0 : 6CD020;
+    0F1 : 6CD120;
+    0F2 : 6CD220;
+    0F3 : 6CD320;
+    0F4 : 6CD420;
+    0F5 : 6CD520;
+    0F6 : 6CD620;
+    0F7 : 6CD720;
+    0F8 : 6CD800;
+    0F9 : 6CD900;
+    0FA : 6CDA00;
+    0FB : 6CDBFF;
+    0FC : 6CDC00;
+    0FD : 6CDD0A;
+    0FE : 6CDE20;
+    0FF : 6CDF20;
+    100 : 6CE020;
+    101 : 6CE120;
+    102 : 6CE220;
+    103 : 6CE320;
+    104 : 6CE420;
+    105 : 6CE520;
+    106 : 6CE620;
+    107 : 6CE720;
+    108 : 6CE820;
+    109 : 6CE920;
+    10A : 6CEA00;
+    10B : 6CEB00;
+    10C : 6CEC00;
+    10D : 6CED00;
+    10E : 6CEE00;
+    10F : 6CEF00;
+    110 : 6CF000;
+    111 : 6CF100;
+    112 : 6CF200;
+    113 : 6CF300;
+    114 : 6CF400;
+    115 : 6CF500;
+    116 : 6CF600;
+    117 : 6CF700;
+    118 : 6CF800;
+    119 : 6CF900;
+    11A : 6CFA00;
+    11B : 6CFB00;
+    11C : 6CFC00;
+    11D : 6CFD00;
+    11E : 6CFE00;
+    11F : 6CFFDA;       -- (EDID) Block 1 Checksum
+    120 : 647700;       -- (Repeater) Set MSb of SPA to location 0
+    121 : 645220;       -- (Repeater) Set the SPA for port B
+    122 : 645300;       -- (Repeater) Set the SPA for port B
+    123 : 64709E;       -- (Repeater) Set LSB of SPA location
+    124 : 647403;       -- (Repeater) Enable Internal EDID for Ports
+    125 : 686CA3;       -- Set HP_MANUAL = 1
+    126 : 9820F8;       -- Manually assert hot plug
 END;

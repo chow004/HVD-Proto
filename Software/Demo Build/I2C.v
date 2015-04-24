@@ -58,6 +58,8 @@ parameter	ssSADDR		= 2'b01;
 parameter	ssRECEIVE	= 2'b10;
 parameter	ssIDLE		= 2'b11;
 
+reg i2c_stop;
+
 // clock control variables
 reg			[6:0]counter;
 reg   counter_reset;
@@ -96,6 +98,7 @@ initial begin
 	
 	scl_ticks = 0;
 	busy = 0;
+  i2c_stop = 0;
 end
 
 // 7-bit counter -> 390.625 kHz
@@ -127,7 +130,6 @@ always @ (posedge LCLK) begin
 	
 	case(State)
 		IDLE: begin
-			I2C_DATA <= 1;
 			if(request & ~busy) begin
 				Next <= SETUP;			  // goto SETUP state
 				subNext <= ssADDR;
@@ -137,6 +139,8 @@ always @ (posedge LCLK) begin
 			end
 			else begin
 			  busy <= 0;
+        I2C_DATA <= 1;
+        i2c_stop <= 0;
 			end
 		end
 		SETUP: begin
@@ -220,15 +224,16 @@ always @ (posedge LCLK) begin
 							end
 						end
 					end
-					else if(CE == 1) begin
+					else if(bytes_processed == length && i2c_stop == 0) begin
 					  // setup for stop cond.
 			      I2C_DATA <= 0;
 			      CE <= 0;
+            i2c_stop <= 1;
 					end
-					else begin
+					else if(i2c_stop == 1) begin
 						I2C_DATA <= 1;
 						Next <= IDLE;
-						subNext <= ssIDLE;
+						subNext <= ssADDR;
 					end
 				end
 			endcase
@@ -242,7 +247,7 @@ always @ (posedge LCLK) begin
 				  I2C_DATA <= 1;
 				end
 			end
-			else if(CE == 1) begin
+			else if(bytes_processed == length) begin
 			  // setup for stop cond.
 			  CE <= 0;
 			  I2C_DATA <= 0;						
@@ -250,7 +255,7 @@ always @ (posedge LCLK) begin
 			else begin
 				I2C_DATA <= 1;
 				Next <= IDLE;
-				subNext <= ssIDLE;
+				subNext <= ssADDR;
 			end
 		end
 	endcase
@@ -298,25 +303,22 @@ always @ (posedge SCL) begin
 					end
 				end
 				ssRECEIVE: begin
-					if(scl_ticks == 8) begin
+					if(scl_ticks == 8 || CE == 0) begin
 						bytes_processed <= bytes_processed + 1;
 						DE <= 1;
 						scl_ticks <= 0;
 					end
-					else if(CE) begin
+					else begin
 						DE = 0;
 						rxReg = rxReg << 1;
 						rxReg[0] = SDA;
 						scl_ticks = scl_ticks + 1;
 					end
-					else begin
-						scl_ticks <= 0;
-					end
 				end
 			endcase
 		end
 		WRITE: begin
-			if(scl_ticks == 8) begin
+			if(scl_ticks == 8 || CE == 0) begin
 				scl_ticks <= 0;
 				bytes_processed <= bytes_processed + 1;
 				DE <= 1;
@@ -324,11 +326,9 @@ always @ (posedge SCL) begin
 					// indicate error here
 				end
 			end
-			else if(CE) begin
-				scl_ticks = scl_ticks + 1;
-			end
 			else begin
-				DE <= 0;
+				scl_ticks = scl_ticks + 1;
+        DE <= 0;
 			end
 		end
 	endcase

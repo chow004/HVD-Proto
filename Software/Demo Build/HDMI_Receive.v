@@ -135,6 +135,8 @@ reg [23:0]mem_in;
 wire [23:0]mem_out;
 reg mem_done;
 
+reg ready;
+
 ram_init mem(.clk(CLOCK_50), .WE(mem_wr), .address(mem_addr), .data_in(mem_in), .data_out(mem_out));
 
 assign VGA_R = HDMI0_RX_P[7:0];
@@ -160,9 +162,10 @@ initial begin
 	i2c0_reset_delay = 0;
 	
 	mem_wr = 0;
-	mem_addr = 12'b0;
+	mem_addr = 12'h127;
 	mem_in = 24'b0;
-	mem_done = 0;
+	mem_done = 1;
+  ready = 1;
 end
 
 always @(posedge CLOCK_50) begin
@@ -189,7 +192,7 @@ always @(posedge CLOCK_50) begin
 		// ^^^ wait until rest delay count reaches 294,912 (approx. 6 ms)
 		LEDR[0] = 0; */
 
-/*		if(~mem_done & ~busy & ~i2c0_req) begin
+		if(~mem_done & ~busy & ~i2c0_req) begin
 			i2c0_tx = mem_out[7:0];
 			i2c0_saddr = mem_out[15:8];
 			i2c0_addr = mem_out[23:17]; 
@@ -199,20 +202,27 @@ always @(posedge CLOCK_50) begin
 			mem_addr = mem_addr + 12'b1;
 		end
 	
-		if(mem_addr == 12'h12B) begin
+		if(mem_addr == 12'h127) begin
 			mem_done = 1;
-		end */
+		end
+    
+    if(SW[17] == 1) begin
+      mem_done = 0;
+      mem_addr = 12'b0;
+    end
 	
-		if(~KEY[0] & ~i2c0_req & ~busy) begin			// KEY0 pressed
+		if(~KEY[0] & ~i2c0_req & ~busy & ready) begin			// KEY0 pressed
 			i2c0_tx[7:0] = SW[7:0];		// byte to transfer = SW7-SW0
 			i2c0_wren = 1;					// perform i2c write
 			i2c0_size = 1;					// write only 1 byte
 			i2c0_req = 1;
+      ready = 0;
 		end
-		else if(~KEY[1] & ~i2c0_req & ~busy) begin		// KEY1 pressed
+		else if(~KEY[1] & ~i2c0_req & ~busy & ready) begin		// KEY1 pressed
 			i2c0_wren = 0;					// perform i2c read
 			i2c0_size = 1;					// read only 1 byte
 			i2c0_req = 1;
+      ready = 0;
 		end
 		else if(~KEY[2]) begin // input address
 			i2c0_addr = SW[7:1];
@@ -221,6 +231,9 @@ always @(posedge CLOCK_50) begin
 			i2c0_saddr = SW[7:0];
 		end
 	
+    if(SW[13] == 1) begin
+      ready = 1;
+    end
 /*		if(i2c0_de & !de_oneshot) begin
 			i2c0_tx = i2c0_tx >> 8;
 		end
@@ -241,6 +254,7 @@ always @(posedge CLOCK_50) begin
 		LEDR[1:0] = substate;
 		LEDR[7:6] = state;
 		LEDR[12] = busy;
+    LEDR[10] = HDMI0_RX_SDA;
 		
 		if(SW[17]) begin
 			mem_done = 0;
